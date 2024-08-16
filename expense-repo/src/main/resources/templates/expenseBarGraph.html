@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Expenses</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link rel="stylesheet" th:href="@{/css/expense.css}" href="/static/css/expense.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Fira Code', monospace;
+        }
+        .container-fluid {
+            max-width: 800px; /* Adjust the maximum width as needed */
+        }
+        canvas {
+            max-width: 100%; /* Make the canvas responsive */
+            height: auto; /* Ensure aspect ratio is maintained */
+        }
+    </style>
+</head>
+<body class="body">
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid d-flex justify-content-between">
+        <a th:href="@{/find-all}" class="btn btn-dark btn-sm btn-shadow cancel-btn">Go back</a>
+<!--        <a href="@{/find-all}" class="back-button">-->
+<!--            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">-->
+<!--                <path d="M0 0h24v24H0V0z" fill="none"/>-->
+<!--                <path fill="currentColor" d="M20 11H7.41l5.3-5.29a.996.996 0 1 0-1.41-1.41l-7.58 7.58a.996.996 0 0 0 0 1.41l7.58 7.58a.996.996 0 1 0 1.41-1.41l-5.3-5.29H20c.55 0 1-.45 1-1s-.45-1-1-1z"/>-->
+<!--            </svg>-->
+<!--        </a>-->
+        <a class="navbar-brand" style="color: #232526">Expense Tracking System</a>
+        <!-- Add your logout icon or button here -->
+        <div>Logged in as: <span th:text="${loggedInUser}"></span>
+            <a th:href="@{/logout}" class="btn btn-outline-light">
+                <button style="width:70px" type="button" class="btn btn-outline-dark btn-sm btn-shadow">Logout</button></a></div>
+    </div>
+</nav>
+
+<div class="container-fluid" id="container">
+
+    <div class="center-column">
+        <div>&nbsp</div>
+
+        <!-- Canvas to render the bar graph -->
+        <canvas id="expenseBarGraph"></canvas>
+
+        <!-- JavaScript code to render the bar graph -->
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            // Retrieve data from Thymeleaf model
+            var dates = /*[[${dates}]]*/ [];
+            var amounts = /*[[${amounts}]]*/ [];
+
+            // Ensure data consistency and handle edge cases
+            if (dates.length === 0 || amounts.length === 0) {
+                console.error("No data available.");
+            } else {
+                // Preprocess data for bundling by week
+                var bundledDates = [];
+                var bundledAmounts = [];
+                var startDate = new Date(dates[0]); // Start from the first date
+                var endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + 6 - endDate.getDay()); // Set to Saturday of the current week
+
+                // Initialize total expense for the current week
+                var totalExpense = 0;
+
+                // Loop through each date and bundle expenses by week
+                for (var i = 0; i < dates.length; i++) {
+                    var currentDate = new Date(dates[i]);
+                    if (currentDate <= endDate) {
+                        totalExpense += amounts[i]; // Accumulate expense for the current week
+                    } else {
+                        // Add current week's bundled data
+                        bundledDates.push(
+                            (startDate.getMonth() + 1) + '/' + startDate.getDate() +
+                            ' - ' +
+                            (endDate.getMonth() + 1) + '/' + endDate.getDate()
+                        );
+                        bundledAmounts.push(totalExpense); // Total amount for the week
+                        startDate = new Date(dates[i]); // Start a new week
+                        endDate = new Date(startDate);
+                        endDate.setDate(endDate.getDate() + 6 - endDate.getDay()); // Set to Saturday of the new week
+                        totalExpense = amounts[i]; // Reset total expense for the new week
+                    }
+                }
+
+                // Add the last week's bundled data
+                bundledDates.push(
+                    (startDate.getMonth() + 1) + '/' + startDate.getDate() +
+                    ' - ' +
+                    (endDate.getMonth() + 1) + '/' + endDate.getDate()
+                );
+                bundledAmounts.push(totalExpense); // Total amount for the last week
+
+                // Prepare data for Chart.js
+                var data = {
+                    labels: bundledDates,
+                    datasets: [{
+                        label: 'Expense Amount',
+                        data: bundledAmounts,
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                };
+
+                // Create bar graph using Chart.js
+                var ctx = document.getElementById('expenseBarGraph').getContext('2d');
+                var myChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: data
+                });
+            }
+
+            /*]]>*/
+        </script>
+    </div>
+</div>
+
+</body>
+</html>
